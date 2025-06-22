@@ -30,12 +30,18 @@ func (m *MockCategoryRepository) ListCategories(
 	return args.Get(0).(*models.ListCategoriesResult), args.Error(1)
 }
 
-func (m *MockCategoryRepository) CreateCategory(ctx context.Context, category *models.Category) error {
+func (m *MockCategoryRepository) CreateCategory(
+	ctx context.Context,
+	category *models.Category,
+) error {
 	args := m.Called(ctx, category)
 	return args.Error(0)
 }
 
-func (m *MockCategoryRepository) UpdateCategory(ctx context.Context, category *models.Category) error {
+func (m *MockCategoryRepository) UpdateCategory(
+	ctx context.Context,
+	category *models.Category,
+) error {
 	args := m.Called(ctx, category)
 	return args.Error(0)
 }
