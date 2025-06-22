@@ -16,7 +16,7 @@ all: build
 # Build the CLI
 build:
 	@mkdir -p $(BIN_DIR)
-	$(GO_BUILD) -o $(BIN_DIR)/$(BINARY_NAME) ./cmd/server
+	$(GO_BUILD) -o $(BIN_DIR)/$(BINARY_NAME) ./cmd/api
 
 # Clean up the build artifacts
 clean:
