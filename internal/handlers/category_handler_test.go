@@ -17,6 +17,7 @@ import (
 	"product-services/internal/shared"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -27,18 +28,37 @@ const (
 	ctxTimeOut = 5 * time.Second
 )
 
+var (
+	testCategoryOne = models.Category{
+		ID:          uuid.MustParse("f2aa335f-6f91-4d4d-8057-53b0009bc376"),
+		Name:        "Test Category A",
+		Description: "Test category a description",
+		TimeStamps: models.TimeStamps{
+			CreatedAt: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+	}
+	testCategoryTwo = models.Category{
+		ID:          uuid.MustParse("b12f2176-28ca-4acf-85b9-cc97ca1b3cf6"),
+		Name:        "Test Category B",
+		Description: "Test category B description",
+		TimeStamps: models.TimeStamps{
+			CreatedAt: time.Date(2025, 10, 13, 0, 0, 0, 0, time.UTC),
+		},
+	}
+)
+
 func TestListCategories(t *testing.T) {
 	createdAfter := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
 	const testLimit = 10
 
-	mockRepo := new(mocks.MockCategoryRepository)
-	mockUtil := new(mocks.MockSystemUtil)
-
-	var logBuf bytes.Buffer
-	logger := logger.NewLogger(env, service, &logBuf)
-	h := NewCategoryHandler(mockRepo, mockUtil, logger, validator.New(), ctxTimeOut)
-
 	t.Run("should respond with bad request if pagination validation fails", func(t *testing.T) {
+		mockRepo := new(mocks.MockCategoryRepository)
+		mockUtil := new(mocks.MockSystemUtil)
+
+		var logBuf bytes.Buffer
+		logger := logger.NewLogger(env, service, &logBuf)
+		h := NewCategoryHandler(mockRepo, mockUtil, logger, validator.New(), ctxTimeOut)
+
 		reqURL := "/categories?cursor=MjAyMy0wMS0wMVQwMDowMDowMFo&limit=ss"
 		req := httptest.NewRequest(http.MethodGet, reqURL, strings.NewReader(""))
 		rw := httptest.NewRecorder()
@@ -78,6 +98,13 @@ func TestListCategories(t *testing.T) {
 	})
 
 	t.Run("should respond with internal server error if repo fails", func(t *testing.T) {
+		mockRepo := new(mocks.MockCategoryRepository)
+		mockUtil := new(mocks.MockSystemUtil)
+
+		var logBuf bytes.Buffer
+		logger := logger.NewLogger(env, service, &logBuf)
+		h := NewCategoryHandler(mockRepo, mockUtil, logger, validator.New(), ctxTimeOut)
+
 		dbError := errors.New("db query error")
 		listOptions := shared.ListOptions{
 			CreatedAfter: createdAfter,
@@ -121,5 +148,56 @@ func TestListCategories(t *testing.T) {
 			assert.Contains(t, entry["caller"], "internal/handlers/category_handler.go")
 			assert.Equal(t, nil, entry["details"])
 		}
+	})
+
+	t.Run("should respond with list of categories if params are valid", func(t *testing.T) {
+		mockRepo := new(mocks.MockCategoryRepository)
+		mockUtil := new(mocks.MockSystemUtil)
+
+		var logBuf bytes.Buffer
+		logger := logger.NewLogger(env, service, &logBuf)
+		h := NewCategoryHandler(mockRepo, mockUtil, logger, validator.New(), ctxTimeOut)
+
+		listCategoriesResult := models.ListCategoriesResult{
+			Categories: []*models.Category{&testCategoryOne, &testCategoryTwo},
+		}
+		listOptions := shared.ListOptions{
+			CreatedAfter: createdAfter,
+			Limit:        testLimit,
+		}
+		mockRepo.On("ListCategories", mock.Anything, listOptions).
+			Return(&listCategoriesResult, nil)
+
+		reqURL := "/categories?cursor=MjAyMy0wMS0wMVQwMDowMDowMFo&limit=10"
+		req := httptest.NewRequest(http.MethodGet, reqURL, strings.NewReader(""))
+		rw := httptest.NewRecorder()
+
+		h.ListCategories(rw, req)
+
+		assert.Equal(t, http.StatusOK, rw.Code)
+		expectedResponse := `{
+			"data": [
+				{
+				"description": "Test category a description",
+				"id": "f2aa335f-6f91-4d4d-8057-53b0009bc376",
+				"name": "Test Category A"
+				},
+				{
+				"description": "Test category B description",
+				"id": "b12f2176-28ca-4acf-85b9-cc97ca1b3cf6",
+				"name": "Test Category B"
+				}
+			],
+			"message": "Successfully fetched list of categories",
+			"pagination": {
+				"next_cursor": "MDAwMS0wMS0wMVQwMDowMDowMFo"
+			},
+			"status": "success"
+		}`
+		assert.JSONEq(t, expectedResponse, rw.Body.String())
+		assert.Equal(t, "", logBuf.String())
+
+		mockRepo.AssertExpectations(t)
+		mockUtil.AssertExpectations(t)
 	})
 }
