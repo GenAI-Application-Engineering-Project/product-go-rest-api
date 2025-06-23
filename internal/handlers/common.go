@@ -49,6 +49,18 @@ type HTTPErrorResponse struct {
 	Error  Error  `json:"error"`
 }
 
+type Pagination struct {
+	HasMore    bool   `json:"has_more,omitempty"`
+	NextCursor string `json:"next_cursor,omitempty"`
+}
+
+type HTTPSuccessResponse struct {
+	Status     string      `json:"status"`
+	Data       any         `json:"data,omitempty"`
+	Pagination *Pagination `json:"pagination,omitempty"`
+	Message    string      `json:"message"`
+}
+
 // DecodeCursorToTime decodes a base64 URL-safe string back into a time.Time
 func DecodeCursorToTime(cursor string) (time.Time, error) {
 	decodedBytes, err := base64.RawURLEncoding.DecodeString(cursor)
@@ -61,6 +73,12 @@ func DecodeCursorToTime(cursor string) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("invalid cursor time format: %s", cursor)
 	}
 	return t, nil
+}
+
+// EncodeTimeToCursor encodes a time.Time into a base64 URL-safe string
+func EncodeTimeToCursor(t time.Time) string {
+	timeStr := t.UTC().Format(time.RFC3339Nano)
+	return base64.RawURLEncoding.EncodeToString([]byte(timeStr))
 }
 
 func ParseCursor(r *http.Request) (time.Time, error) {
@@ -79,7 +97,7 @@ func ParseCursor(r *http.Request) (time.Time, error) {
 func ParseLimit(r *http.Request) (int, error) {
 	limitStr := r.URL.Query().Get(LimitParam)
 	if limitStr == "" {
-		return 0, nil
+		return 10, nil
 	}
 
 	val, err := strconv.ParseInt(limitStr, 10, 32)
@@ -162,6 +180,25 @@ func WriteErrorResponse(
 			Message: message,
 			Details: details,
 		},
+	}
+
+	writeResponse(w, statusCode, op, resp, logger)
+}
+
+func WriteSuccessResponse(
+	w http.ResponseWriter,
+	statusCode int,
+	message string,
+	data any,
+	pagination *Pagination,
+	op string,
+	logger interfaces.AppLogger,
+) {
+	resp := HTTPSuccessResponse{
+		Status:     StatusSuccess,
+		Data:       data,
+		Pagination: pagination,
+		Message:    message,
 	}
 
 	writeResponse(w, statusCode, op, resp, logger)

@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"product-services/internal/interfaces"
+	"product-services/internal/shared"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -35,7 +37,7 @@ func NewCategoryHandler(
 
 func (h *CategoryHandler) ListCategories(w http.ResponseWriter, r *http.Request) {
 	const op = "CategoryHandler.ListCategories"
-	_, _, err := ParseAndValidatePagination(r)
+	createdAfter, limit, err := ParseAndValidatePagination(r)
 	if err != nil {
 		WriteErrorResponse(
 			w,
@@ -49,4 +51,40 @@ func (h *CategoryHandler) ListCategories(w http.ResponseWriter, r *http.Request)
 		)
 		return
 	}
+
+	listOptions := shared.ListOptions{
+		CreatedAfter: createdAfter,
+		Limit:        limit,
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), h.ctxTimeOut)
+	defer cancel()
+
+	result, err := h.repo.ListCategories(ctx, listOptions)
+	if err != nil {
+		WriteErrorResponse(
+			w,
+			http.StatusInternalServerError,
+			ErrCodeInternalServerError,
+			ErrMessageInternalServerError,
+			err,
+			nil,
+			op,
+			h.logger,
+		)
+		return
+	}
+
+	WriteSuccessResponse(
+		w,
+		http.StatusOK,
+		"Successfully fetched list of categories",
+		result.Categories,
+		&Pagination{
+			HasMore:    result.HasMore,
+			NextCursor: EncodeTimeToCursor(result.NextCursor),
+		},
+		op,
+		h.logger,
+	)
 }
