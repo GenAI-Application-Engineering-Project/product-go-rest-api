@@ -63,9 +63,16 @@ This API will:
 
 ### Tasks
 
+- [ ] Project Setup
+- [ ] The Interfaces
+- [ ] The Logger
+- [ ] The Category Handler
+- [ ] The Product Handler
+- [ ] The Server
+- [ ] The Category Repository
+- [ ] The Product Repository
 - [ ] Design SQL schema for products and categories
-- [ ] Implement CRUD endpoints for products
-- [ ] Implement CRUD endpoints for categories
-- [ ] Add centralized error logging and request tracing
-- [ ] Write unit and integration tests
+- [ ] Dockerization
+- [ ] The Logging Middleware - centralized request logging
+- [ ] Integration tests
 - [ ] Generate and expose API documentation
