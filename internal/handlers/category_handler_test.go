@@ -51,7 +51,7 @@ func TestListCategories(t *testing.T) {
 	createdAfter := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
 	const testLimit = 10
 
-	t.Run("should respond with bad request if pagination validation fails", func(t *testing.T) {
+	t.Run("should respond with bad request if limit is invalid", func(t *testing.T) {
 		mockRepo := new(mocks.MockCategoryRepository)
 		mockUtil := new(mocks.MockSystemUtil)
 
@@ -90,6 +90,98 @@ func TestListCategories(t *testing.T) {
 			assert.Equal(t, float64(1002), entry["code"])
 			assert.NotNil(t, entry["time"])
 			errMsg := "strconv.ParseInt: parsing \"ss\": invalid syntax"
+			assert.Equal(t, errMsg, entry["error"])
+			assert.Equal(t, "Invalid field format", entry["message"])
+			assert.Contains(t, entry["caller"], "internal/handlers/category_handler.go")
+			assert.Nil(t, entry["details"])
+		}
+	})
+
+	t.Run("should respond with bad request if cursor is invalid", func(t *testing.T) {
+		mockRepo := new(mocks.MockCategoryRepository)
+		mockUtil := new(mocks.MockSystemUtil)
+
+		var logBuf bytes.Buffer
+		logger := logger.NewLogger(env, service, &logBuf)
+		h := NewCategoryHandler(mockRepo, mockUtil, logger, validator.New(), ctxTimeOut)
+
+		reqURL := "/categories?cursor=MjAyMy0wMS0wMVQ_MDowMDowMFo&limit=ss"
+		req := httptest.NewRequest(http.MethodGet, reqURL, strings.NewReader(""))
+		rw := httptest.NewRecorder()
+
+		h.ListCategories(rw, req)
+
+		assert.Equal(t, http.StatusBadRequest, rw.Code)
+		expectedResponse := `{
+			"status":"error",
+			"error": {
+				"code": 1002,
+				"message": "Invalid field format"
+			}
+		}`
+		assert.JSONEq(t, expectedResponse, rw.Body.String())
+
+		mockRepo.AssertExpectations(t)
+		mockUtil.AssertExpectations(t)
+
+		// verify log content
+		scanner := bufio.NewScanner(&logBuf)
+		for scanner.Scan() {
+			var entry map[string]interface{}
+			err := json.Unmarshal(scanner.Bytes(), &entry)
+			assert.NoError(t, err)
+			assert.Equal(t, "error", entry["level"])
+			assert.Equal(t, "ProductService", entry["service"])
+			assert.Equal(t, "CategoryHandler.ListCategories", entry["op"])
+			assert.Equal(t, float64(1002), entry["code"])
+			assert.NotNil(t, entry["time"])
+			errMsg := "invalid cursor time format: MjAyMy0wMS0wMVQ_MDowMDowMFo"
+			assert.Equal(t, errMsg, entry["error"])
+			assert.Equal(t, "Invalid field format", entry["message"])
+			assert.Contains(t, entry["caller"], "internal/handlers/category_handler.go")
+			assert.Nil(t, entry["details"])
+		}
+	})
+
+	t.Run("should respond with bad request if cursor token is invalid", func(t *testing.T) {
+		mockRepo := new(mocks.MockCategoryRepository)
+		mockUtil := new(mocks.MockSystemUtil)
+
+		var logBuf bytes.Buffer
+		logger := logger.NewLogger(env, service, &logBuf)
+		h := NewCategoryHandler(mockRepo, mockUtil, logger, validator.New(), ctxTimeOut)
+
+		reqURL := "/categories?cursor=MjAyMy0wMS0wMVQ<MDowMDowMFo&limit=ss"
+		req := httptest.NewRequest(http.MethodGet, reqURL, strings.NewReader(""))
+		rw := httptest.NewRecorder()
+
+		h.ListCategories(rw, req)
+
+		assert.Equal(t, http.StatusBadRequest, rw.Code)
+		expectedResponse := `{
+			"status":"error",
+			"error": {
+				"code": 1002,
+				"message": "Invalid field format"
+			}
+		}`
+		assert.JSONEq(t, expectedResponse, rw.Body.String())
+
+		mockRepo.AssertExpectations(t)
+		mockUtil.AssertExpectations(t)
+
+		// verify log content
+		scanner := bufio.NewScanner(&logBuf)
+		for scanner.Scan() {
+			var entry map[string]interface{}
+			err := json.Unmarshal(scanner.Bytes(), &entry)
+			assert.NoError(t, err)
+			assert.Equal(t, "error", entry["level"])
+			assert.Equal(t, "ProductService", entry["service"])
+			assert.Equal(t, "CategoryHandler.ListCategories", entry["op"])
+			assert.Equal(t, float64(1002), entry["code"])
+			assert.NotNil(t, entry["time"])
+			errMsg := "invalid cursor encoding: MjAyMy0wMS0wMVQ<MDowMDowMFo"
 			assert.Equal(t, errMsg, entry["error"])
 			assert.Equal(t, "Invalid field format", entry["message"])
 			assert.Contains(t, entry["caller"], "internal/handlers/category_handler.go")
@@ -169,6 +261,57 @@ func TestListCategories(t *testing.T) {
 			Return(&listCategoriesResult, nil)
 
 		reqURL := "/categories?cursor=MjAyMy0wMS0wMVQwMDowMDowMFo&limit=10"
+		req := httptest.NewRequest(http.MethodGet, reqURL, strings.NewReader(""))
+		rw := httptest.NewRecorder()
+
+		h.ListCategories(rw, req)
+
+		assert.Equal(t, http.StatusOK, rw.Code)
+		expectedResponse := `{
+			"data": [
+				{
+				"description": "Test category a description",
+				"id": "f2aa335f-6f91-4d4d-8057-53b0009bc376",
+				"name": "Test Category A"
+				},
+				{
+				"description": "Test category B description",
+				"id": "b12f2176-28ca-4acf-85b9-cc97ca1b3cf6",
+				"name": "Test Category B"
+				}
+			],
+			"message": "Successfully fetched list of categories",
+			"pagination": {
+				"next_cursor": "MDAwMS0wMS0wMVQwMDowMDowMFo"
+			},
+			"status": "success"
+		}`
+		assert.JSONEq(t, expectedResponse, rw.Body.String())
+		assert.Equal(t, "", logBuf.String())
+
+		mockRepo.AssertExpectations(t)
+		mockUtil.AssertExpectations(t)
+	})
+
+	t.Run("should use default values if limit and cursor are not provided", func(t *testing.T) {
+		mockRepo := new(mocks.MockCategoryRepository)
+		mockUtil := new(mocks.MockSystemUtil)
+
+		var logBuf bytes.Buffer
+		logger := logger.NewLogger(env, service, &logBuf)
+		h := NewCategoryHandler(mockRepo, mockUtil, logger, validator.New(), ctxTimeOut)
+
+		listCategoriesResult := models.ListCategoriesResult{
+			Categories: []*models.Category{&testCategoryOne, &testCategoryTwo},
+		}
+		listOptions := shared.ListOptions{
+			CreatedAfter: time.Time{},
+			Limit:        20,
+		}
+		mockRepo.On("ListCategories", mock.Anything, listOptions).
+			Return(&listCategoriesResult, nil)
+
+		reqURL := "/categories"
 		req := httptest.NewRequest(http.MethodGet, reqURL, strings.NewReader(""))
 		rw := httptest.NewRecorder()
 

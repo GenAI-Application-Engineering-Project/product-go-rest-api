@@ -13,6 +13,9 @@ import (
 )
 
 const (
+	// Defaults
+	DefaultLimit = 20
+
 	// Error codes
 	ErrCodeValidationFailed     = 1000
 	ErrCodeMissingRequiredField = 1001
@@ -97,7 +100,7 @@ func ParseCursor(r *http.Request) (time.Time, error) {
 func ParseLimit(r *http.Request) (int, error) {
 	limitStr := r.URL.Query().Get(LimitParam)
 	if limitStr == "" {
-		return 10, nil
+		return DefaultLimit, nil
 	}
 
 	val, err := strconv.ParseInt(limitStr, 10, 32)
