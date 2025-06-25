@@ -54,8 +54,7 @@ func TestWriteResponse(t *testing.T) {
 		expectedResponse := `{
 			"status":"error",
 			"error": {
-				"code": 1600,
-				"message": "Internal server error"
+				"message": "Internal Server Error"
 			}
 		}`
 		assert.JSONEq(t, expectedResponse, rw.Body.String())
@@ -68,12 +67,12 @@ func TestWriteResponse(t *testing.T) {
 			assert.Equal(t, "error", entry["level"])
 			assert.Equal(t, "ProductService", entry["service"])
 			assert.Equal(t, op, entry["op"])
-			assert.Equal(t, float64(1600), entry["code"])
+			assert.Equal(t, float64(1001), entry["code"])
 			assert.NotNil(t, entry["time"])
 			errMsg := "json: unsupported value: encountered a cycle via *handlers.Node"
 			assert.Equal(t, errMsg, entry["error"])
-			assert.Equal(t, "Internal server error", entry["message"])
-			assert.Contains(t, entry["caller"], "internal/handlers/common.go")
+			assert.Equal(t, "JSON encoding error", entry["message"])
+			assert.Contains(t, entry["caller"], "internal/handlers/common_test.go")
 			assert.Equal(t, nil, entry["details"])
 		}
 	})
@@ -100,10 +99,10 @@ func TestWriteResponse(t *testing.T) {
 			assert.Equal(t, "error", entry["level"])
 			assert.Equal(t, "ProductService", entry["service"])
 			assert.Equal(t, op, entry["op"])
-			assert.Equal(t, float64(1600), entry["code"])
+			assert.Equal(t, float64(1002), entry["code"])
 			assert.NotNil(t, entry["time"])
 			assert.Equal(t, "writer error", entry["error"])
-			assert.Equal(t, "error writing response to client", entry["message"])
+			assert.Equal(t, "Failed response writer", entry["message"])
 			assert.Contains(t, entry["caller"], "internal/handlers/common_test.go")
 			assert.Equal(t, nil, entry["details"])
 		}
