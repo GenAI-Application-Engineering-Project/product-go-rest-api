@@ -37,14 +37,12 @@ func NewCategoryHandler(
 
 func (h *CategoryHandler) ListCategories(w http.ResponseWriter, r *http.Request) {
 	const op = "CategoryHandler.ListCategories"
-	createdAfter, limit, err := ParseAndValidatePagination(r)
-	if err != nil {
+	createdAfter, limit, isValid := ParseAndValidatePagination(r, op, h.logger)
+	if !isValid {
 		WriteErrorResponse(
 			w,
 			http.StatusBadRequest,
-			ErrCodeInvalidFieldFormat,
-			ErrMessageInvalidFieldFormat,
-			err,
+			ErrMessageInvalidRequestParam,
 			nil,
 			op,
 			h.logger,
@@ -65,9 +63,7 @@ func (h *CategoryHandler) ListCategories(w http.ResponseWriter, r *http.Request)
 		WriteErrorResponse(
 			w,
 			http.StatusInternalServerError,
-			ErrCodeInternalServerError,
 			ErrMessageInternalServerError,
-			err,
 			nil,
 			op,
 			h.logger,

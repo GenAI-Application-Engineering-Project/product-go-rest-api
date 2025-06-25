@@ -69,8 +69,7 @@ func TestListCategories(t *testing.T) {
 		expectedResponse := `{
 			"status":"error",
 			"error": {
-				"code": 1002,
-				"message": "Invalid field format"
+				"message": "Invalid request param"
 			}
 		}`
 		assert.JSONEq(t, expectedResponse, rw.Body.String())
@@ -87,11 +86,11 @@ func TestListCategories(t *testing.T) {
 			assert.Equal(t, "error", entry["level"])
 			assert.Equal(t, "ProductService", entry["service"])
 			assert.Equal(t, "CategoryHandler.ListCategories", entry["op"])
-			assert.Equal(t, float64(1002), entry["code"])
+			assert.Equal(t, float64(1000), entry["code"])
 			assert.NotNil(t, entry["time"])
-			errMsg := "strconv.ParseInt: parsing \"ss\": invalid syntax"
+			errMsg := "invalid limit value: `ss`, error: strconv.ParseInt: parsing \"ss\": invalid syntax"
 			assert.Equal(t, errMsg, entry["error"])
-			assert.Equal(t, "Invalid field format", entry["message"])
+			assert.Equal(t, "Invalid request param", entry["message"])
 			assert.Contains(t, entry["caller"], "internal/handlers/category_handler.go")
 			assert.Nil(t, entry["details"])
 		}
@@ -115,8 +114,7 @@ func TestListCategories(t *testing.T) {
 		expectedResponse := `{
 			"status":"error",
 			"error": {
-				"code": 1002,
-				"message": "Invalid field format"
+				"message": "Invalid request param"
 			}
 		}`
 		assert.JSONEq(t, expectedResponse, rw.Body.String())
@@ -133,11 +131,13 @@ func TestListCategories(t *testing.T) {
 			assert.Equal(t, "error", entry["level"])
 			assert.Equal(t, "ProductService", entry["service"])
 			assert.Equal(t, "CategoryHandler.ListCategories", entry["op"])
-			assert.Equal(t, float64(1002), entry["code"])
+			assert.Equal(t, float64(1000), entry["code"])
 			assert.NotNil(t, entry["time"])
-			errMsg := "invalid cursor time format: MjAyMy0wMS0wMVQ_MDowMDowMFo"
+
+			errMsg := "invalid cursor time format: `MjAyMy0wMS0wMVQ_MDowMDowMFo`, error: parsing time \"2023-01-01T?0:00:00Z\" as \"2006-01-02T15:04:05.999999999Z07:00\": cannot parse \"?0:00:00Z\" as \"15\""
+
 			assert.Equal(t, errMsg, entry["error"])
-			assert.Equal(t, "Invalid field format", entry["message"])
+			assert.Equal(t, "Invalid request param", entry["message"])
 			assert.Contains(t, entry["caller"], "internal/handlers/category_handler.go")
 			assert.Nil(t, entry["details"])
 		}
@@ -161,8 +161,7 @@ func TestListCategories(t *testing.T) {
 		expectedResponse := `{
 			"status":"error",
 			"error": {
-				"code": 1002,
-				"message": "Invalid field format"
+				"message": "Invalid request param"
 			}
 		}`
 		assert.JSONEq(t, expectedResponse, rw.Body.String())
@@ -179,11 +178,11 @@ func TestListCategories(t *testing.T) {
 			assert.Equal(t, "error", entry["level"])
 			assert.Equal(t, "ProductService", entry["service"])
 			assert.Equal(t, "CategoryHandler.ListCategories", entry["op"])
-			assert.Equal(t, float64(1002), entry["code"])
+			assert.Equal(t, float64(1000), entry["code"])
 			assert.NotNil(t, entry["time"])
-			errMsg := "invalid cursor encoding: MjAyMy0wMS0wMVQ<MDowMDowMFo"
+			errMsg := "invalid cursor encoding: `MjAyMy0wMS0wMVQ<MDowMDowMFo`, error: illegal base64 data at input byte 15"
 			assert.Equal(t, errMsg, entry["error"])
-			assert.Equal(t, "Invalid field format", entry["message"])
+			assert.Equal(t, "Invalid request param", entry["message"])
 			assert.Contains(t, entry["caller"], "internal/handlers/category_handler.go")
 			assert.Nil(t, entry["details"])
 		}
@@ -215,8 +214,7 @@ func TestListCategories(t *testing.T) {
 		expectedResponse := `{
 			"status":"error",
 			"error": {
-				"code": 1600,
-				"message": "Internal server error"
+				"message": "Internal Server Error"
 			}
 		}`
 		assert.JSONEq(t, expectedResponse, rw.Body.String())
